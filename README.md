@@ -42,7 +42,7 @@ For windows server 2025 you need WMIC (enable optional feature). I will change t
 <span style="text-decoration: underline"><b><br>
 How to install?</b></span><br>
 SnipeZilla Srcds Manager read a configuration file ('config.xml') (Which can be manually edited if the server is not standard);<br>
-To create one simply click start-web.bat<br>
+To create one simply click start-web.bat(Run As Administrator if you're not)<br>
 The web interface has various options available:
 <ol>
 <li><span style="color: #99ffff">CONFIGURATION</span> : setup SteamCMD and SRCDS, Trigger Update etc...If you already have a server and it's running, just point the folder location.<br>
