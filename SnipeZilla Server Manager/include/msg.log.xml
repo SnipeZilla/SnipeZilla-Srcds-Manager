@@ -1,0 +1,60 @@
+<log>
+    <!--[0-19] Startup messages-->
+    <message code='0'>Error: File not found ('%4').</message>
+    <message code='1'>Error: Syntax error found in '%4'</message>
+    <message code='2'>Error: Missing Tag '%4' in config '%5'.</message>
+    <message code='3'>Error: 'steamcmd.exe' not found or defined in config '%5'.</message>
+    <message code='5'>Error: Server %1 'appid', Game %4 doesn't exist.</message>
+    <message code='6'>Error: Server %1 'installdir' not specify.</message>
+    <message code='7'>Error in [games.list.xml]: No games.</message>
+    <message code='8'>No server created. Please check config.xml</message>
+    <message code='9'>Server %1 (%2): Install Dir already defined => server %4.</message>
+    <message code='10'>Server %1 (%2): Port is used => server %4.</message>
+
+    <!--[20-39] Update (steamcmd.exe) messages-->
+    <message code='20'>%2: Installing new game, [%3][%2].</message>
+    <message code='21'>\tInstallation for Server %1 failed! Sz Manager is now off.</message>
+    <message code='22'>%2: Update requested at startup (%4).</message>
+    <message code='23'>%3: New version available. %4 -> %5.</message>
+    <message code='24'>MasterServerVersion: No response!. Request Queued.</message>
+    <message code='25'>%2: New Version is available! Server is shutting down.</message>
+    <message code='30'>%2: steamCMD.exe is updating [%3].</message>
+    <message code='31'>%2: steamCMD.exe is updating cache /apps/%3.</message>
+    <message code='32'>%2: Copying new files(xcopy).</message>
+    <message code='33'>steamcmd.exe crashed: %2 Failed to update.</message>
+    <message code='34'>steamcmd.exe crashed: App cache (%3) failed to update.</message>
+    <message code='35'>xcopy.exe crashed: Failed to copy new files to Server %1.</message>
+    <message code='36'>%2: Update failed! x%4.</message>
+    <message code='37'>%2: Attempting an update (repair)!</message>
+    <message code='38'>%2: xcopy changed to [safe mode].</message>
+    <message code='39'>%2: Update completed.</message>
+
+    <!--[40-49] RCON messages-->
+    <message code='40'>New version is available. Update required.</message>
+
+    <!--[50-59] Start (srcds.exe) messages-->
+    <message code='50'>%2: Launched successfully.&#xD;&#xA;&#x9;&#x9;&#x9;&#x9;=> %4</message>
+    <message code='51'>%2: Failed to start.</message>
+    <message code='52'>%2: Crashed!</message>
+    <message code='53'>%2: Too many Crashed! Something wrong. Startup is now delay.</message>
+    <message code='54'>%2: Online and Stable!</message>
+    <message code='55'>%2 was already running.</message>
+    <message code='56'>%2: Too many Crashed! Gave up...</message>
+    <message code='57'>%2: Status: %4, Crash: %5.</message>
+
+    <!--[60-79] Process-->
+    <message code='60'>%2: Process Terminated [%4].</message>
+    <message code='61'>%2: Could not ping server. Error %4 - %5.</message>
+    <message code='62'>%2: No feedback from ping. x%4.</message>
+    <message code='63'>%2: No feedback from ping. Process Terminated.</message>
+    <message code='64'>%2: RCON Bad Password.</message>
+    <message code='65'>%2: STOP Requested.</message>
+    <message code='66'>%2: Daily Restart Requested.</message>
+    <message code='67'>Server is restarting for maintenance.</message>
+    <message code='68'>%2: No rcon password set.</message>
+    <message code='69'>%2: Email Alert postponed since %4 seconds.</message>
+    <message code='70'>Email Alert Error: %4</message>
+
+    <!--[80-99] Others-->
+    <message code='99'>...Waiting for Process to end...</message>
+</log>
