@@ -31,6 +31,7 @@ function xcopy($source, $dest, $exclude, $safe = false, $print = false )
 {
     $source = str_replace('/', '\\', $source);
     $dest   = str_replace('/', '\\', $dest);
+
     // Check for symlinks
     if (is_link($source)) {
         return symlink(readlink($source), $dest);

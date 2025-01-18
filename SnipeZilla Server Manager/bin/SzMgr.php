@@ -27,9 +27,12 @@ If not, see <http://www.gnu.org/licenses/>.
 - Installation Guide & Help: https://www.snipezilla.com/snipezilla-srcds-manager
 ───────────────────────────────────────────────────────────────────────────
 */
+error_reporting(E_ALL); 
+ini_set("log_errors", 1);
+ini_set("error_log", "php-error.txt");
 class SzMgr
 {
-    private $version = '0.15';               // Sz srcds version
+    private $version = '1.2.0';              // Sz srcds version
     private $server;                         // Srcds server
     private $games;                          // Games list
     private $msg;                            // Log messages
@@ -90,6 +93,7 @@ class SzMgr
             }
 
         }
+
         //close socket
         @fclose($fp);
         $info = array();
@@ -317,7 +321,7 @@ class SzMgr
 //-------------------------------------------
     private function Email()
     {
-        if ( !$this->server[0]['email']['mail'] ) return false;
+        if ( !isset($this->server[0]['email']['mail']) || empty($this->server[0]['email']['mail']) ) return false;
 
         //smtp-crash.txt
         if ( $this->server[0]['email']['postpone'][2] == 1 ) {
@@ -386,7 +390,7 @@ class SzMgr
         shell_exec('wmic process call create "'.$sendmail.'","'.($this->__DIR.'\bin').'"');
         $this->server[0]['email']['postpone'][0] = time();
         $this->server[0]['email']['postpone'][2] = 1;
-        $this->server[0]['email']['message']     = '';
+        $this->server[0]['email']['message']     = array();
     }
 
 //-------------------------------------------
@@ -556,13 +560,13 @@ class SzMgr
         }
 
         //Email alert
-        if (isset($this->server[0]['email']['sendmail_to']) && $this->server[0]['email']['sendmail_to']) {
+        if (isset($this->server[0]['email']['sendmail_to']) && empty($this->server[0]['email']['sendmail_to']) ) {
 
             //ini_set smtp
-            if ( !isset($this->server[0]['email']['smtp']) || !trim($this->server[0]['email']['smtp']) ) {
+            if ( !isset($this->server[0]['email']['smtp']) || empty($this->server[0]['email']['smtp']) ) {
                 $this->server[0]['email']['smtp']='localhost';
             }
-            if ( !isset($this->server[0]['email']['smtp_port']) || !($this->server[0]['email']['smtp_port']) ) {
+            if ( !isset($this->server[0]['email']['smtp_port']) || empty($this->server[0]['email']['smtp_port']) ) {
                 $this->server[0]['email']['smtp_port']=25;
             }
             if ( isset($this->server[0]['email']['smtp_ssl']) ) {
@@ -570,13 +574,13 @@ class SzMgr
             } else {
                 $this->server[0]['email']['smtp_ssl'] = false;
             }
-            if ( !isset($this->server[0]['email']['auth_username']) || !trim($this->server[0]['email']['auth_username']) ) {
+            if ( !isset($this->server[0]['email']['auth_username']) || empty($this->server[0]['email']['auth_username']) ) {
                 $this->server[0]['email']['auth_username']='';
             }
-            if ( !isset($this->server[0]['email']['auth_password']) || !trim($this->server[0]['email']['auth_password']) ) {
+            if ( !isset($this->server[0]['email']['auth_password']) || empty($this->server[0]['email']['auth_password']) ) {
                 $this->server[0]['email']['auth_password']='';
             }
-            if ( !isset($this->server[0]['email']['sendmail_from']) || !trim($this->server[0]['email']['sendmail_from']) ) {
+            if ( !isset($this->server[0]['email']['sendmail_from']) || empty($this->server[0]['email']['sendmail_from']) ) {
                 $this->server[0]['email']['sendmail_from']='no-reply@snipezilla.com';
             }
             if ( !isset($this->server[0]['email']['alert']) ) {
@@ -689,8 +693,9 @@ class SzMgr
                 }
                 // app
                 if ( !isset($this->server[$this->id]['srcds']) ) {
-                    $this->server[$this->id]['srcds']=$this->games[$this->server[$this->id]['appid']]['srcds'];
+                    $this->server[$this->id]['srcds']=$this->server[$this->id]['installdir'].'\\'.$this->games[$this->server[$this->id]['appid']]['srcds'];
                 }
+                $this->server[$this->id]['app'] = substr($this->server[$this->id]['srcds'],strrpos($this->server[$this->id]['srcds'], '\\')+1);
 
                 //Game
                 $this->server[$this->id]['game'] = $this->games[$role]['game'];
@@ -725,7 +730,7 @@ class SzMgr
                 //install dir or Port defined?
                 for ($ii=1; $ii<$this->id; $ii++) {
 
-                    if ( $this->server[$this->id]['installdir'] == $this->server[$ii]['installdir'] ) {
+                    if ( $this->server[$this->id]['installdir'] == $this->server[$ii]['installdir'] && $this->server[$this->id]['ip'].':'.$this->server[$this->id]['port'] == $this->server[$ii]['ip'].':'.$this->server[$ii]['port'] ) {
                         $this->Log(9, $ii);
                         return false;
                     }
@@ -868,7 +873,7 @@ class SzMgr
         }
 
         //Require Attr
-        $attr = array('name','game','server','app_set_config','config','srcds');
+        $attr = array('name','game','server','cmd','app_set_config','config','srcds');
         $games = [];
 
         foreach($xml->children() as $child) {
@@ -909,22 +914,24 @@ class SzMgr
                         $games[$role]['login'] = true;
                     }
 
-                    if (!isset($games[$role]['app_set_config']) || !$games[$role]['app_set_config']) {
+                    if (!isset($games[$role]['cmd']) || $games[$role]['cmd'] == '') {
+                        $games[$role]['cmd'] = '';
+                    }
+
+                    if (!isset($games[$role]['app_set_config']) || $games[$role]['app_set_config'] == '') {
                         $games[$role]['app_set_config'] = '';
                     } else {
                         $games[$role]['app_set_config'] = ' +app_set_config '.$games[$role]['app_set_config'];
                     }
 
-                    if (!isset($games[$role]['config']) || !$games[$role]['config']) {
+                    if (!isset($games[$role]['config']) || $games[$role]['config'] == '') {
                         $games[$role]['config'] = 'cfg\server.cfg';
                     } else {
                         $games[$role]['config'] = preg_replace('/^\//','',str_replace("/","\\", $games[$role]['config']));
                     }
 
-                    if (!isset($games[$role]['srcds']) || !$games[$role]['srcds']) {
-                        $games[$role]['srcds'] = 'srcds_win64.exe';
-                    } else {
-                        $games[$role]['srcds'] = preg_replace('/^\//','',str_replace("/","\\", $games[$role]['srcds']));
+                    if (!isset($games[$role]['srcds']) || $games[$role]['srcds'] == '') {
+                        $games[$role]['srcds'] = 'srcds.exe';
                     }
 
                 } else {
@@ -1164,13 +1171,13 @@ class SzMgr
 
         }
 
-        //email alert?
-        //if ( $msg !== null && $this->server[0]['email']['mail'] &&
-         //    preg_match('/(\b'.$n.'\b)/', $this->server[0]['email']['alert']) && $msg && $n >= 20) {
-
-        //    $this->server[0]['email']['message'][] = array( 'alert' => $n, 'time' => $time, 'server' => '('.$this->id.') '.$b, 'message' => $msg);
-
-       // }
+        //Email alert?
+        if ( !empty($this->server[0]['email']['mail']) && !empty($this->server[0]['email']['alert']) && preg_match('/(\b'.$n.'\b)/', $this->server[0]['email']['alert']) && $msg != '' && $n >= 20) {
+		
+            if (!isset($this->server[0]['email']['message'])) { $this->server[0]['email']['message']=array(); }
+            $this->server[0]['email']['message'][] = array( 'alert' => $n, 'time' => $time, 'server' => '('.$this->id.') '.$b, 'message' => $msg);
+		
+        }
     }
 
 //-------------------------------------------
@@ -1183,13 +1190,15 @@ class SzMgr
                ($this->server[$this->id]['version'] >= $this->server[0][$this->server[$this->id]['appid']]['version']) ) ) {
 
             //Url to check:
-            $json = @file_get_contents('http://api.steampowered.com/ISteamApps/UpToDateCheck/v1?appid='.$this->server[$this->id]['appid'].'&version=1&format=json');
+            $json = @file_get_contents('https://api.steampowered.com/ISteamApps/UpToDateCheck/v1?appid='.$this->server[$this->id]['appid'].'&version=1&format=json');
 
             //Server response
             $data = @json_decode($json,true);
 
             //Version checked in case of multi servers
-            $version = preg_replace('/[^0-9]/', '', @$data['response']['required_version']);
+            if ( isset($data['response']['required_version']) ) {
+                $version = preg_replace('/[^0-9]/', '', $data['response']['required_version']);
+            } else { $version=false; }
 
             //Save current version
             if ($version) {
@@ -1288,53 +1297,47 @@ class SzMgr
 //-------------------------------------------
     private function Preg($cmd = '')
     {
-        //double quotes
-        $cmd = str_replace('"','\"',$cmd);
-
         //default cmd
          $def = array( 
-                      '-maxplayers' => $this->server[$this->id]['maxplayers'],
+                      '-game'       => $this->server[$this->id]['game'],
                       '-usercon'    => '',
                       '-console'    => '', 
-                      '-port'       => $this->server[$this->id]['port'], 
                       '-ip'         => $this->server[$this->id]['ip'],
-                      '-game'       => $this->server[$this->id]['game'],
+                      '-port'       => $this->server[$this->id]['port'], 
+                      '-maxplayers' => $this->server[$this->id]['maxplayers'],
                       '+map'        => $this->server[$this->id]['map']
                      );
-        $cmd = preg_replace('/\s+/', ' ',trim($cmd));
-        $ln = strlen($cmd);
-        $start   = 0;
+
+        $cmd = explode(" ",preg_replace('/\s+/', ' ',trim($cmd.' '.$this->games[$this->server[$this->id]['appid']]['app_set_config'].' '.$this->games[$this->server[$this->id]['appid']]['cmd'])));
         $cmdLine = array();
+        $ln = sizeof($cmd);
+
         for ($i = 0; $i<$ln; $i++) {
 
-            if ( $cmd[$i] == "-" || $cmd[$i] == "+" ) {
+            if ( isset($cmd[$i+1]) && ( $cmd[$i+1][0] != "-" || $cmd[$i+1][0] != "+" ) && ( $cmd[$i][0] == "-" || $cmd[$i][0] == "+" ) ) {
 
-                    if ($start) {
-                        $word              = explode(" ", $word);
-                        $cmdLine[$word[0]] = @$word[1];
-                    }
-                    $start             = 1;
-                    $word              = $cmd[$i];
+                $cmdLine[$cmd[$i]] = $cmd[$i+1];
+                $i++;               
 
-            } elseif ($start) {
-                    
-                 $word .= $cmd[$i]; 
+            } else {
+
+               $cmdLine[$cmd[$i]] = '';
 
             }
 
         }
-        if (isset($word)) {
-            $word      = explode(" ", $word);
-            $cmdLine[$word[0]] = @$word[1];
-        }
         $cmd = '';
         foreach ( $cmdLine as $key => $value ) {
-            
-            if ( isset($def[$key]) ) {
+            if ( $key == "-dedicated" ) {
 
-                if ( ($key == "-maxplayers" || $key == "-maxplayers_override") && $value) {
+                if (isset($def['-game'])) unset($def['-game']);
+                $cmd .= $key." ".$value." ";
+   
+            } elseif ( isset($def[$key]) ) {
 
-                    if (isset($key)) unset($def[$key]);
+               if ( ($key == "-maxplayers" || $key == "-maxplayers_override") && $value) {
+
+                    if (isset($def[$key])) unset($def[$key]);
                     $cmd .= $key." ".$value." ";
 
                 } elseif ($key == "+map" && $value) {
@@ -1355,15 +1358,12 @@ class SzMgr
             
 
         }
+
         foreach ( $def as $key => $value ) {
 
-            if ($key == '-maxplayers' && !$value) continue;
-            if ($key == '+map' && !$value)        continue;
-            if ($key == '+map') {
-                $cmd .= " ".$key." ".$value;
-            } else {
-                $cmd = $key." ".$value." ".$cmd;
-            }
+            if ($key == '-maxplayers' && empty($value)) continue;
+            if ($key == '+map' && empty($value))        continue;
+            $cmd .= " ".$key." ".$value;
 
         }
 
@@ -1459,13 +1459,15 @@ class SzMgr
 
                 } else {
 
-                    $ExecPath = '/'.str_replace('\\','\\\\',$this->server[$id]['installdir'].'\\'.$this->server[$id]['srcds']).'/i'; 
-                    $proc = preg_split('/\w+=/', shell_exec('wmic process where name="'.$this->server[$id]['srcds'].'" get ProcessId, Commandline /FORMAT:LIST'),-1, PREG_SPLIT_NO_EMPTY);
+                    $ExecPath = '/'.str_replace('\\','\\\\',$this->server[$id]['srcds']).'/i';
+
+                    $proc = preg_split('/\w+=/', shell_exec('wmic process where name="'.$this->server[$id]['app'].'" get ProcessId, CommandLine /FORMAT:LIST'),-1, PREG_SPLIT_NO_EMPTY);
 
                     $numb = sizeof($proc)-1;
+
                     for ($i = 1; $i<$numb; $i++) {
 
-                        if ( preg_match($ExecPath, $proc[$i]) ) {
+                        if ( preg_match($ExecPath, $proc[$i]) && preg_match('/-port '.$this->server[$id]['port'].'/i', $proc[$i]) ) {
 
                             return (int)$proc[$i+1];
 
@@ -1844,11 +1846,11 @@ class SzMgr
         $lines_array = file($pathINF);
 
         //Version
-        $find_version = "PatchVersion";
+        $find_version = "/^PatchVersion=\d|^ServerVersion=\d/i";
 
         foreach($lines_array as $line) {
 
-            if (strpos($line, $find_version) !== false) {
+            if ( preg_match($find_version,$line) ) {
                 //Read actual version
                 list(, $version) = explode("=", $line);
                 $version = preg_replace('/[^0-9]/', '', $version);
@@ -1937,12 +1939,7 @@ class SzMgr
         if ($cmd) {
 
             //From cfg file
-            $cmd = $this->Preg($cmd);
-
-        } else {
-
-            //From config.sz_srdcs.php
-            $cmd = $this->server[$this->id]['cmd'];
+            $this->server[$this->id]['cmd'] = $this->Preg($cmd);
 
         }
 
@@ -1951,7 +1948,7 @@ class SzMgr
         $this->server[0][$this->server[$this->id]['appid']]['cache'] = $this->ServerVersion(1);
 
         //Start SRCDS.EXE
-        $srcds = $this->server[$this->id]['installdir'].'\\'.$this->server[$this->id]['srcds'].' '.$cmd;
+        $srcds = $this->server[$this->id]['srcds'].' '.$this->server[$this->id]['cmd'];
         preg_match('/ProcessId=([0-9]+)/' , preg_replace('/\s+/', '', shell_exec('wmic process call create "'.$srcds.'","'.$this->server[$this->id]['installdir'].'"')), $matches);
         $this->server[$this->id]['pid'] = @$matches[1];
 
