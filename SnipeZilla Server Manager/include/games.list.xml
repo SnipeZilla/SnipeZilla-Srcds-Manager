@@ -1,0 +1,130 @@
+<list>
+
+    <games appid='10'>
+        <name>Counter-Strike 1.6</name>
+        <game>cstrike</game>
+        <server>90</server>
+        <app_set_config>90 mod cstrike</app_set_config>
+        <login>true</login>
+        <srcds>hlds.exe</srcds>
+        <config>server.cfg</config>
+    </games>
+
+    <games appid='20'>
+        <name>Team Fortress Classic</name>
+        <game>tfc</game>
+        <server>90</server>
+        <app_set_config>90 mod tfc</app_set_config>
+        <login>true</login>
+        <srcds>hlds.exe</srcds>
+        <config>server.cfg</config>
+    </games>
+
+    <games appid='30'>
+        <name>Day of Defeat</name>
+        <game>dod</game>
+        <server>90</server>
+        <app_set_config>90 mod dod</app_set_config>
+        <login>true</login>
+        <srcds>hlds.exe</srcds>
+        <config>server.cfg</config>
+    </games>
+
+    <games appid='40'>
+        <name>Deathmatch Classic</name>
+        <game>dmc</game>
+        <server>90</server>
+        <app_set_config>90 mod dmc</app_set_config>
+        <login>true</login>
+        <srcds>hlds.exe</srcds>
+        <config>server.cfg</config>
+    </games>
+<!--
+    <games appid='50'>
+        <name>Half-Life: Opposing Force</name>
+        <game>gearbox</game>
+        <server>90</server>
+        <app_set_config>90 mod gearbox</app_set_config>
+        <login>true</login>
+        <srcds>hlds.exe</srcds>
+        <config>server.cfg</config>
+    </games>
+-->
+    <games appid='60'>
+        <name>Ricochet</name>
+        <game>ricochet</game>
+        <server>90</server>
+        <app_set_config>90 mod ricochet</app_set_config>
+        <login>true</login>
+        <srcds>hlds.exe</srcds>
+        <config>server.cfg</config>
+    </games>
+
+    <games appid='80'>
+        <name>Counter-Strike: Condition Zero</name>
+        <game>czero</game>
+        <server>90</server>
+        <app_set_config>90 mod czero</app_set_config>
+        <login>true</login>
+        <srcds>hlds.exe</srcds>
+        <config>server.cfg</config>
+    </games>
+
+    <games appid='240'>
+        <name>Counter-Strike: Source</name>
+        <game>cstrike</game>
+        <server>232330</server>
+    </games>
+
+    <games appid='300'>
+       <name>Day of Defeat: Source</name>
+       <game>dod</game>
+       <server>232290</server>
+    </games>
+
+    <games appid='320'>
+       <name>Half-Life 2: Deathmatch</name>
+       <game>hl2mp</game>
+       <server>232370</server>
+    </games>
+
+    <games appid='360'>
+       <name>Half-Life Deathmatch: Source</name>
+       <game>hlmp</game>
+       <server>255470</server>
+    </games>
+
+    <games appid='440'>
+        <name>Team Fortress 2</name>
+        <game>tf</game>
+        <server>232250</server>
+    </games>
+
+    <games appid='500'>
+        <name>Left 4 Dead</name>
+        <game>left4dead</game>
+        <server>222840</server>
+    </games>
+
+    <games appid='550'>
+        <name>Left 4 Dead 2</name>
+        <game>left4dead2</game>
+        <server>222860</server>
+    </games>
+
+    <games appid='730'>
+        <name>Counter-Strike 2</name>
+        <game>game\csgo</game>
+        <server>730</server>
+        <srcds>game\bin\win64\cs2.exe</srcds>
+        <cmd>-dedicated</cmd>
+    </games>
+	
+    <games appid='4000'>
+        <name>Garry's Mod</name>
+        <game>garrysmod</game>
+        <server>4020</server>
+    </games>
+
+</list>
+
