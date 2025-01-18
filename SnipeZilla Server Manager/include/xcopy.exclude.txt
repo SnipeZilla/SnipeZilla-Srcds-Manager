@@ -1,2 +1,0 @@
-motd.txt
-server.cfg
