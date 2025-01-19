@@ -1,0 +1,1 @@
+<?php die('Error 403 - Forbidden: Access is denied.'); ?>
