@@ -92,22 +92,28 @@ switch ($ctrl) {
         $ExecFile = 'php.exe';
         $ExecPath = 'CD /d "'.$root.'" && START "SnipeZilla Srcds Manager" "'.$root.$ExecFile.'" -f "'.$root.'SzMgr.php"';
         $SzMgr = "SnipeZilla Srcds Manager";
+        $app_status = TaskMgr($ExecFile) ? 'ON' : 'OFF';  
         if ( preg_match('/'.$SzMgr.'/i', shell_exec('schtasks /Query')) ) {
-        
+
+            $task_status = $app_status=='ON' ? 'Running' : 'Ready';
             if ( $task_status == 'Ready' ) {
 
                 echo "SnipeZilla Srcds Manager is installed but not running. Server ".$id." [".$server[$id]['fname']."] cannot start.";
                 break;
 
-            }
+            } 
+            echo "Server ".$id." [".$server[$id]['fname']."] is starting.";
+           break;
+
         } else {
-            $app_status = TaskMgr($ExecFile) ? 'Running' : 'Ready'; 
-            if ( $app_status == 'Running' ) {
+
+            if ( $app_status == 'ON' ) {
 
                 echo "SnipeZilla Srcds Manager is not installed but it is running.";
                 break;
 
             }
+
        }
 
        echo 'Starting: SnipeZilla Srcds Manager';
