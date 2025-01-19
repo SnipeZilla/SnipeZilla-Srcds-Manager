@@ -28,7 +28,7 @@ If not, see <http://www.gnu.org/licenses/>.
 */
 var Sz = {
     author: 'SnipeZilla',
-    version: 'Version: 1.2.0',
+    version: 'Version: 1.2.1',
     token: '',
     page: '',
     pid: 0,
