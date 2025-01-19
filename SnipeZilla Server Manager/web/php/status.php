@@ -167,6 +167,8 @@ if ($task_status != 'Running') {
         } else {
             echo 'SnipeZilla Srcds Manager is not installed. '.($total>2?'Servers are':'Server is').' not monitored.';
        }
+    } else {
+        echo 'SnipeZilla Srcds Manager is installed but not running. '.($total>2?'Servers':'Server').' can be stopped but not start.';
     }
     echo '</p>';
 }
