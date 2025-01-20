@@ -101,7 +101,8 @@ class SzMgr
         //Actual Players
         $data_array              = explode("\x00", substr($data, 6), 5);
         $data                    = $data_array[4];
-        $this->server[$this->id]['players'] = ord(substr($data, 2, 1)); 
+        $this->server[$this->id]['players'] = ord(substr($data, 2, 1))-ord(substr($data, 4, 1));
+
         if ( !$this->server[$this->id]['players'] ) {
 
             $this->server[$this->id]['empty_since'] += $this->server[0]['delay']['ping'];
