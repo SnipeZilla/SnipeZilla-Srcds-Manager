@@ -412,7 +412,7 @@ if ( preg_match('/'.$SzMgr.'/i', shell_exec('schtasks /Query')) ) {
     $("#add-server").click(function() {
         Sz.tab.id = $("div#server ul li").length;
         if ( Sz.tab.id == 2 && !$('div#server ul li:eq(1)').is(':visible') ) {
-            $('#server-1 select[name="appid"] option:selected').prop("selected", false);
+            $('#server-1').find("select").prop("selectedIndex",0);
             $('div#server ul li:eq(1)').show();
             $("#server").tabs({ active: 1 });
             $('#server-'+(Sz.tab.id)+' .browse').hide();
@@ -428,20 +428,20 @@ if ( preg_match('/'.$SzMgr.'/i', shell_exec('schtasks /Query')) ) {
             $( '#server-'+(Sz.tab.id)+' [name="installdir"]' ).after( '<span class="fa fa-search browse" name="dir" title="Select Root Directory"></span>' );
         }
         $("div#server").tabs("refresh");
-        //$('[name="appid"]:eq('+(Sz.tab.id-1)+') option:selected').remove();
-        $('#server-' + Sz.tab.id).find("input[type=text], textarea").val("");
-        $('#server-' + Sz.tab.id).find("input").attr("readonly", false);
-        $('#server-' + Sz.tab.id +' .update').remove();
-        $('#server-' + Sz.tab.id +' .editcfg').remove();
-        $('#server-' + Sz.tab.id +' .opendir').remove();
+        $('#server-'+ Sz.tab.id).find("select").prop("selectedIndex",0);
+        $('#server-'+ Sz.tab.id).find("input[type=text], textarea").val("");
+        $('#server-'+ Sz.tab.id).find("input").attr("readonly", false);
+        $('#server-'+ Sz.tab.id +' .update').remove();
+        $('#server-'+ Sz.tab.id +' .editcfg').remove();
+        $('#server-'+ Sz.tab.id +' .opendir').remove();
         $('.path:eq('+Sz.tab.id+')').text('');
         $('.file:eq('+(Sz.tab.id-1)+')').text('');
-        $('#server-' + Sz.tab.id +' .suggest-map').text('').removeClass('hovered').hide();
-        $('#server-' + Sz.tab.id +' .suggest-ip').removeClass('hovered').hide();
-        $('#server-' + Sz.tab.id +' .suggest-port').removeClass('hovered').hide();
-        $('#server-' + Sz.tab.id +' .suggest-players').removeClass('hovered').hide();
-        $('#server-' + Sz.tab.id +' .suggest-server').removeClass('hovered').hide();
-        $('#server-' + Sz.tab.id +' option:disabled').removeAttr('disabled');
+        $('#server-'+ Sz.tab.id +' .suggest-map').text('').removeClass('hovered').hide();
+        $('#server-'+ Sz.tab.id +' .suggest-ip').removeClass('hovered').hide();
+        $('#server-'+ Sz.tab.id +' .suggest-port').removeClass('hovered').hide();
+        $('#server-'+ Sz.tab.id +' .suggest-players').removeClass('hovered').hide();
+        $('#server-'+ Sz.tab.id +' .suggest-server').removeClass('hovered').hide();
+        $('#server-'+ Sz.tab.id +' option:disabled').removeAttr('disabled');
         $('#server-'+(Sz.tab.id)+' .browse').hide();
         $("#server").tabs({ active: Sz.tab.id });
         //Refresh Tabs:
