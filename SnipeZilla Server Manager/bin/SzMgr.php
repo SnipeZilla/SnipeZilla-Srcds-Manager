@@ -29,7 +29,7 @@ If not, see <http://www.gnu.org/licenses/>.
 */
 class SzMgr
 {
-    private $version = '1.2.4';              // Sz srcds version
+    private $version = '1.2.5';              // Sz srcds version
     private $server;                         // Srcds server
     private $games;                          // Games list
     private $msg;                            // Log messages
