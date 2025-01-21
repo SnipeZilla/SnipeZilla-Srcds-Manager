@@ -1,2 +1,3 @@
+mapcycle.txt
 motd.txt
 server.cfg
