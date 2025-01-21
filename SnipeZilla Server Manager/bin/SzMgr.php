@@ -29,7 +29,7 @@ If not, see <http://www.gnu.org/licenses/>.
 */
 class SzMgr
 {
-    private $version = '1.2.5';              // Sz srcds version
+    private $version = '1.3.0';              // Sz srcds version
     private $server;                         // Srcds server
     private $games;                          // Games list
     private $msg;                            // Log messages
@@ -101,9 +101,10 @@ class SzMgr
         //Actual Players
         $data_array              = explode("\x00", substr($data, 6), 5);
         $data                    = $data_array[4];
-        $this->server[$this->id]['players'] = ord(substr($data, 2, 1))-ord(substr($data, 4, 1));
+        $this->server[$this->id]['players'] = ord(substr($data, 2, 1));
+        $this->server[$this->id]['bots']    = ord(substr($data, 4, 1));
 
-        if ( !$this->server[$this->id]['players'] ) {
+        if ( empty($this->server[$this->id]['players']) || $this->server[$this->id]['players'] == $this->server[$this->id]['bots'] ) {
 
             $this->server[$this->id]['empty_since'] += $this->server[0]['delay']['ping'];
 
@@ -112,6 +113,7 @@ class SzMgr
             $this->server[$this->id]['empty_since'] = 0;
 
         }
+
         //status
         return true;
     }
