@@ -38,6 +38,9 @@ For windows server 2025 you need WMIC (enable optional feature). I will change t
 </li>
 <li>Voted best Srcds Manager ever</li>
 </ul>
+<span style="text-decoration: underline"><b><br>
+Games list:</b></span><br>
+<a href="https://github.com/SnipeZilla/SnipeZilla-Srcds-Manager/blob/main/SnipeZilla%20Server%20Manager/include/games.list.xml">games.list.xml</a>
 
 <span style="text-decoration: underline"><b><br>
 How to install?</b></span><br>
