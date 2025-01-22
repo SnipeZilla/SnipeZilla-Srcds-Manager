@@ -56,6 +56,8 @@ The web interface has various options available:
 </li>
 <li><span style="color: #99ffff">FILE MANAGER</span>: Useful if you have more than 1 server.<br>
 </li>
+<li><span style="color: #99ffff">USER</span>: Add users to protect access and manage server. (if website is public)<br>
+</li>
 <li><span style="color: #99ffff">HELP</span>: Useless links and legal stuff (GNU General Public License)</li>
 </ol>
 
