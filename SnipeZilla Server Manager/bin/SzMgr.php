@@ -29,7 +29,7 @@ If not, see <http://www.gnu.org/licenses/>.
 */
 class SzMgr
 {
-    private $version = '1.3.0';              // Sz srcds version
+    private $version = '1.4.0';              // Sz srcds version
     private $server;                         // Srcds server
     private $games;                          // Games list
     private $msg;                            // Log messages
@@ -37,9 +37,9 @@ class SzMgr
     private $total;                          // Total server(s)
     private $__DIR;                          // Root Folder
 
-    public function __construct()
+    public function __construct($v)
     {
-        $this->Init();
+        $this->Init($v);
     }
 
 //-------------------------------------------
@@ -343,31 +343,43 @@ class SzMgr
         if ( time() - $this->server[0]['email']['postpone'][0] < $this->server[0]['email']['postpone'][1] ) return false;
 
         //SMTP running
-        $proc = preg_split('/\w+=/', shell_exec('wmic process where name="php.exe" get ProcessId, Commandline /FORMAT:LIST'),-1, PREG_SPLIT_NO_EMPTY);
-        $numb = sizeof($proc);
-        for ($i=1; $i<$numb; $i++) {
+        // Check for php.exe processes
+        $raw_output = shell_exec("powershell -Command \"Get-CimInstance Win32_Process -Filter \\\"Name='php.exe'\\\" | Select-Object ProcessId, CommandLine | Out-String -Width 2000\"");
+
+        // Explode lines and analyze
+        $lines = explode("\n", trim($raw_output));
+
+        // Remove the header and separator lines (first two lines)
+        if ( count($lines) > 2 ) {
+            for ($i = 2; $i < count($lines); $i++) {
+                $line = trim($lines[$i]); // Clean any extra spaces
+
+                if (preg_match('/^(\d+)\s+(.+)$/', $line, $matches)) {
+
+                    if ( preg_match('/.*bin\\\\sendmail.php"?/i', $matches[2]) ) {
+
+                    if ( (time() - $this->server[0]['email']['postpone'][0]) < 120 ) { //2 mn postpone
         
-            if ( preg_match('/.*bin\\\\sendmail.php"?/i', $proc[$i]) ) {
-
-                if ( (time() - $this->server[0]['email']['postpone'][0]) < 120 ) { //2 mn postpone
-
-                    if (time() - $this->server[0]['email']['postpone'][0] > $this->server[0]['email']['postpone'][2]) {
-                        $this->Log(69, time() - $this->server[0]['email']['postpone'][0]);
-                        $this->server[0]['email']['postpone'][2] += 30;
+                        if (time() - $this->server[0]['email']['postpone'][0] > $this->server[0]['email']['postpone'][2]) {
+                            $this->Log(69, time() - $this->server[0]['email']['postpone'][0]);
+                            $this->server[0]['email']['postpone'][2] += 30;
+                        }
+        
+                        return false; 
+        
+                    } else {
+        
+                        $pid = (int)$matches[1];
+                        if ($pid) shell_exec("taskkill /F /PID ".$pid.""); //kill sendmail
+                        break;
+        
                     }
 
-                    return false; 
+                    return (int)$matches[1];
 
-                } else {
-
-                    $pid = (int)$proc[$i+2];
-                    if ($pid) shell_exec("taskkill /F /PID ".$pid.""); //kill sendmail
-                    break;
-
+                    }
                 }
-
             }
-        
         }
 
         //Message
@@ -385,10 +397,10 @@ class SzMgr
         $message = wordwrap($message, 70, "\r\n");
 
         //Sendmail path
-        $sendmail = $this->__DIR.'\bin\php.exe -f \"'.$this->__DIR.'\bin\sendmail.php\" \"'.$this->server[0]['email']['mail'].'\" \"'.base64_encode($message).'\" ';
-
+        $sendmail = $this->__DIR.'\bin\php.exe';
+        $cmd = '-f \"'.$this->__DIR.'\bin\sendmail.php\" \"'.$this->server[0]['email']['mail'].'\" \"'.base64_encode($message).'\"';
         //Run sendmail
-        shell_exec('wmic process call create "'.$sendmail.'","'.($this->__DIR.'\bin').'"');
+        shell_exec("powershell -Command \"\$process = Start-Process -FilePath '".$sendmail."' -ArgumentList '".$cmd."' -WorkingDirectory '".$this->__DIR."' -PassThru; \$process.Id\"");
         $this->server[0]['email']['postpone'][0] = time();
         $this->server[0]['email']['postpone'][2] = 1;
         $this->server[0]['email']['message']     = array();
@@ -411,7 +423,7 @@ class SzMgr
         }
 
         //simplexml
-        $xml = @simplexml_load_file($file);
+        $xml = simplexml_load_file($file);
 
         //Parse error
         if ( !$xml ) {
@@ -423,6 +435,7 @@ class SzMgr
 
         //Attr steamcmd
         $steamcmd = array('steamcmddir',
+                          'steamdir',
                           'xcopy',
                           'updatefile',
                           'delay',
@@ -464,7 +477,9 @@ class SzMgr
                           'xcopy',
                           'updatefile',
                           'pingable',
-                          'plugin');
+                          'plugin',
+                          'metamod',
+                          'rcon_password');
 
         //var
         $this->server = [];
@@ -528,6 +543,11 @@ class SzMgr
         }
 
         $this->server[0]['steamcmddir'] = preg_replace('/\/$|\\$/', '', str_replace("/","\\",$this->server[0]['steamcmddir']));
+
+        //Steam/Steamwork
+        if ( !isset($this->server[0]['steamdir']) ) {
+            $this->server[0]['steamdir'] = false;
+        }
 
         if ( !file_exists($this->server[0]['steamcmddir']) ) {
             $this->Log(3, 'steamcmd', 'config.xml');
@@ -654,6 +674,31 @@ class SzMgr
             $this->server[0]['delay']['say'] = 15;
         }
 
+        //steam dependency?
+        if ( $this->server[0]['steamdir'] ) {
+
+
+            $newDir = rtrim($this->server[0]['steamdir'],'\\'); // Ensure valid directory path
+
+            $existingPath = getenv('Path');
+
+            if (strpos($existingPath, $newDir) === false) {
+                $command = 'powershell -Command "try { ' .
+                '$existingPath = [System.Environment]::GetEnvironmentVariable(\"Path\", \"Machine\"); ' .
+                'if ($existingPath -eq $null) { Write-Error \"Path environment variable not found.\"; exit; } ' .
+                '$newPath = \"$existingPath;' . $newDir . '\"; ' .
+                'setx /M Path $newPath; ' .
+                'Write-Output \"Success\"; } catch { Write-Error $_.Exception.Message }"';
+                $result = shell_exec($command . ' 2>&1'); // Capture detailed output
+                $this->Log(11, $result);
+            } else {
+                // Log that the directory already exists
+                $this->Log(11, "Path already contains the directory: " . $newDir);
+            }
+
+
+        }
+
         //Internal Var
         $this->server[0]['time'] = '';
         $this->server[0]['task']['log'] = time()-($this->server[0]['cleanlog']*24*3600)-1;
@@ -770,8 +815,9 @@ class SzMgr
                 }
 
                 //Internal var | rcon_password
-                $this->server[$this->id]['rcon_password'] = $this->ReadFile($this->server[$this->id]['installdir'].'\\'.$this->server[$this->id]['game'].'\\'.$this->games[$this->server[$this->id]['appid']]['config'],'rcon_password');
-
+                if ( empty($this->server[$this->id]['rcon_password']) ) {
+                    $this->server[$this->id]['rcon_password'] = $this->ReadFile($this->server[$this->id]['installdir'].'\\'.$this->server[$this->id]['game'].'\\'.$this->games[$this->server[$this->id]['appid']]['config'],'rcon_password');
+                }
                 if (!$this->server[$this->id]['rcon_password']) $this->Log(68);
 
                 //cmd            
@@ -1013,8 +1059,11 @@ class SzMgr
 //-------------------------------------------
 //  Init Server(s)
 //-------------------------------------------
-    private function Init()
+    private function Init($v)
     {
+        //echo to console
+        $this->console = $v;
+
         //Root
         $root        = exec('chdir',$o,$r);
         $this->__DIR = preg_replace('/\\\\bin$/','',$root);
@@ -1107,7 +1156,8 @@ class SzMgr
     private function Log($n = 0, $text1 = '', $text2 = '')
     {
         //No logs
-        if ( ($n > -1) && (!isset($this->msg[$n]) || !$this->msg[$n]) ) return false;
+        if ( $n > -1 && (!isset($this->msg[$n]) || !$this->msg[$n]) && !$this->console ) return false;
+
 
         //Text to replace
         $a = ''; $b = ''; $c = ''; $d = ''; $e = '';
@@ -1130,9 +1180,10 @@ class SzMgr
         $e = $text2; //%5 extra
 
         //Current time
-        $local = exec('wmic os get localdatetime',$o,$r);
-        $date  = substr($o[1], 0, 4).'-'.substr($o[1], 4, 2).'-'.substr($o[1], 6, 2);
-        $time  = substr($o[1], 8, 2).':'.substr($o[1], 10, 2).':'.substr($o[1], 12, 2);
+        $local = exec("powershell Get-Date -Format \"yyyyMMddHHmmss\"",$o,$r);
+
+        $date  = substr($o[0], 0, 4).'-'.substr($o[0], 4, 2).'-'.substr($o[0], 6, 2);
+        $time  = substr($o[0], 8, 2).':'.substr($o[0], 10, 2).':'.substr($o[0], 12, 2);
 
         //Daily File Path
         $filePath = $this->__DIR.'\logs\\'.$date.'.txt';
@@ -1140,7 +1191,7 @@ class SzMgr
         //text
         $header = "SnipeZilla Srcds Manager ".$this->version."\r\n";
         $msg = '';
-        if ($n > -1) {
+        if ( $n > -1 && isset($this->msg[$n]) ) {
 
             $msg     = str_replace(array('%1','%2','%3','%4','%5'), array($a,$b,$c,$d,$e), $this->msg[$n]);
             $message = $n." - ".$time." - ".$a." - ".$msg."\r\n";
@@ -1149,10 +1200,16 @@ class SzMgr
 
             //Sz_srcds started
             $message = "" ;
-            if ($n == -2) $message = $n." - ".$time." - 'msg.log.xml' couldn't be loaded. File not found.";
-            if ($n == -3) $message = $n." - ".$time." - 'msg.log.xml' couldn't be loaded. Syntax error.";
+            if ($n == -2) $message = $n." - ".$time." - 'msg.log.xml' couldn't be loaded. File not found.\r\n";
+            if ($n == -3) $message = $n." - ".$time." - 'msg.log.xml' couldn't be loaded. Syntax error.\r\n";
 
         }
+
+        //Echo
+        if ( $this->console ) { echo $message; }
+
+        //No logs
+        if ( ($n > -1) && (!isset($this->msg[$n]) || !$this->msg[$n]) ) return false;
 
         //Daily new file?
         if (!file_exists($filePath)){
@@ -1176,7 +1233,7 @@ class SzMgr
         if ( !empty($this->server[0]['email']['mail']) && !empty($this->server[0]['email']['alert']) && preg_match('/(\b'.$n.'\b)/', $this->server[0]['email']['alert']) && $msg != '' && $n >= 20) {
 
             $this->server[0]['email']['message'][] = array( 'alert' => $n, 'time' => $time, 'server' => '('.$this->id.') '.$b, 'message' => $msg);
-		
+
         }
     }
 
@@ -1237,6 +1294,46 @@ class SzMgr
 
         //No new version
         return false;
+    }
+
+//-------------------------------------------
+//  Check Master Server for current version
+//-------------------------------------------
+    private function MetaMod($path='')
+    {
+        if ( !file_exists($path) ) return false;
+
+        // Metamod
+        $searchLine = "Game_LowViolence";
+        $newLine    = "\t\t\tGame\tcsgo/addons/metamod";
+
+        // Read the file content
+        $fileContents = file_get_contents($path);
+        if ( strpos($fileContents, 'csgo/addons/metamod') > 0 ) return false;
+
+        // File to array
+        $fileContents = file($path, FILE_IGNORE_NEW_LINES);
+
+        // nothing
+        if ( $fileContents === false ) return false;
+    
+        // Open to write
+        $fileHandle = fopen($path, 'w');
+        if ( $fileHandle === false )  return false;
+
+        foreach ($fileContents as $line) {
+            fwrite($fileHandle, $line . PHP_EOL);
+            if ( preg_match('/'.$searchLine.'/i', $line, $matches) ) {
+
+                fwrite($fileHandle, $newLine . PHP_EOL);
+
+            }
+        }
+
+        // Close the file
+        fclose($fileHandle);
+        $this->Log(26);
+
     }
 
 //-------------------------------------------
@@ -1433,52 +1530,67 @@ class SzMgr
 
             //Check if process is running
             case 'chk':
+
                 //steamcmd or xcopy
                 if (!$id) {
+                    // Check for steamcmd.exe process
+                    $raw_output = shell_exec("powershell -Command \"Get-CimInstance Win32_Process -Filter \\\"Name='steamcmd.exe'\\\" ; Select-Object ProcessId \"");
 
-                    $proc = preg_split('/\w+=/', shell_exec('wmic process where name="steamcmd.exe" get ProcessId /FORMAT:LIST'),-1, PREG_SPLIT_NO_EMPTY);
-                    $numb = sizeof($proc)-1;
-                    if ($numb<1) {
+                    if ( preg_match('/(\d+)/', $raw_output, $matches) ) {
 
-                        $proc = preg_split('/\w+=/', shell_exec('wmic process where name="php.exe" get ProcessId, Commandline /FORMAT:LIST'),-1, PREG_SPLIT_NO_EMPTY);
-                        
-                        $numb = sizeof($proc);
-                        for ($i=1; $i<$numb; $i++) {
-                        
-                            if ( preg_match('/.*bin\\\\xcopy.php"?/i', $proc[$i]) ) {
-                        
-                                $proc[1]=$proc[$i+1];
-                                break;
+                        return (int)$matches[1];
+                    } else {
+                        // Check for php.exe processes
+                        $raw_output = shell_exec("powershell -Command \"Get-CimInstance Win32_Process -Filter \\\"Name='php.exe'\\\" | Select-Object ProcessId, CommandLine | Out-String -Width 2000\"");
 
+                        // Explode lines and analyze
+                        $lines = explode("\n", trim($raw_output));
+    
+                        // Remove the header and separator lines (first two lines)
+                        if ( count($lines) > 2 ) {
+                            for ($i = 2; $i < count($lines); $i++) {
+                                $line = trim($lines[$i]); // Clean any extra spaces
+    
+                                if (preg_match('/^(\d+)\s+(.+)$/', $line, $matches)) {
+    
+                                    if ( preg_match('/.*bin\\\\xcopy.php"?/i', $matches[2]) ) {
+                                    return (int)$matches[1];
+   
+                                    }
+                                }
                             }
-                        
                         }
-
                     }
-                    if (isset($proc[1])) return (int)$proc[1];
 
                 } else {
+                    // Check for specific app processes
+                    $ExecPath = '/' . preg_quote($this->server[$id]['srcds'], '/') . '/i';
+                    $appName = escapeshellarg($this->server[$id]['app']);
+                
+                    $raw_output = shell_exec("powershell -Command \"Get-CimInstance Win32_Process -Filter \\\"Name='".$appName."'\\\" | Select-Object ProcessId, CommandLine | Out-String -Width 2000\"");
+    
+                    // Explode lines and analyze
+                    $lines = explode("\n", trim($raw_output));
+    
+                    // Remove the header and separator lines (first two lines)
+                    if ( count($lines) > 2 ) {
+                        for ($i = 2; $i < count($lines); $i++) {
+                            $line = trim($lines[$i]); // Clean any extra spaces
+    
+                            if (preg_match('/^(\d+)\s+(.+)$/', $line, $matches)) {
+    
+                                if ( preg_match($ExecPath, $matches[2]) && preg_match('/-port '.$this->server[$id]['port'].'/', $matches[2]) ) {
 
-                    $ExecPath = '/'.str_replace('\\','\\\\',$this->server[$id]['srcds']).'/i';
-
-                    $proc = preg_split('/\w+=/', shell_exec('wmic process where name="'.$this->server[$id]['app'].'" get ProcessId, CommandLine /FORMAT:LIST'),-1, PREG_SPLIT_NO_EMPTY);
-
-                    $numb = sizeof($proc)-1;
-
-                    for ($i = 1; $i<$numb; $i++) {
-
-                        if ( preg_match($ExecPath, $proc[$i]) && preg_match('/-port '.$this->server[$id]['port'].'/i', $proc[$i]) ) {
-
-                            return (int)$proc[$i+1];
-
+                                    return (int)$matches[1];
+    
+                                }
+                            }
                         }
-
                     }
-
+    
                 }
-
-               //not running
-               return 0;
+                //not running
+                return 0;
 
             break;
 
@@ -1622,21 +1734,6 @@ class SzMgr
             $r    = substr($r, 4);//trunc $r
             $id   = @unpack('Vdata', $id);
 
-            //Bad password
-            if ( ( $id['data'] != 1 ) ) {
-
-                //Wrong rcon_password
-                $this->Log(64);
-
-                //Reset ping & frequency
-                $this->server[$this->id]['ping'] -= 1;
-                $this->server[$this->id]['timer'] = time();
-
-                //return
-                return false;
-
-            }
-
             //msg
             $msg = trim($msg);
             if ($msg)
@@ -1740,8 +1837,8 @@ class SzMgr
         }
 
         //Schedule
-        $local = exec('wmic os get localdatetime',$o,$r);
-        if ( substr($o[1], 8, 2) == $this->server[0]['restart'] || time() - $this->server[$this->id]['time'] > 24*3600 ) {
+        $local = exec("powershell Get-Date -Format \"yyyyMMddHHmmss\"",$o,$r);
+        if ( substr($o[0], 8, 2) == $this->server[0]['restart'] || time() - $this->server[$this->id]['time'] > 24*3600 ) {
 
             //Restart only if empty
             if ( $this->server[$this->id]['pingable'] && $this->server[0]['empty'] ) {
@@ -1842,11 +1939,16 @@ class SzMgr
         //File/Server Not Present
         if ( !file_exists($pathINF) ) return 0;
 
+        //Version
+        $fileContents = file_get_contents($pathINF);
+        if ( preg_match("/PatchVersion=\d/i",$fileContents) ) {
+            $find_version = "/PatchVersion=\d/i";
+        } elseif ( preg_match("/ServerVersion=\d/i",$fileContents) ) {
+            $find_version = "/ServerVersion=\d/i";
+        } else { $find_version = "/^PatchVersion=\d|^ServerVersion=\d/i"; }
+
         // Read Current version:
         $lines_array = file($pathINF);
-
-        //Version
-        $find_version = "/^PatchVersion=\d|^ServerVersion=\d/i";
 
         foreach($lines_array as $line) {
 
@@ -1947,10 +2049,19 @@ class SzMgr
         $this->server[$this->id]['version'] = $this->ServerVersion();
         $this->server[0][$this->server[$this->id]['appid']]['cache'] = $this->ServerVersion(1);
 
+        //Metamod?
+        if ( !empty($this->server[$this->id]['metamod']) && $this->server[$this->id]['metamod'] ) {
+
+            $this->MetaMod($this->server[$this->id]['installdir'].'\\'.$this->server[$this->id]['game'].'\\gameinfo.gi');
+
+        }
+
         //Start SRCDS.EXE
-        $srcds = $this->server[$this->id]['srcds'].' '.$this->server[$this->id]['cmd'];
-        preg_match('/ProcessId=([0-9]+)/' , preg_replace('/\s+/', '', shell_exec('wmic process call create "'.$srcds.'","'.$this->server[$this->id]['installdir'].'"')), $matches);
-        $this->server[$this->id]['pid'] = @$matches[1];
+        $srcds   = $this->server[$this->id]['srcds'];
+        $cmd     = $this->server[$this->id]['cmd'];
+        $command = "powershell -Command \"\$process = Start-Process -FilePath '".$srcds."' -ArgumentList '".$cmd."' -PassThru; \$process.PriorityClass = '".$this->server[$this->id]['priority']."'; \$process.Id\"";
+        preg_match('/\d+/', preg_replace('/\s+/', '', shell_exec($command)), $matches);
+        $this->server[$this->id]['pid'] = $matches[0] ?? null;
 
         //Verify Launch
         if (!$this->server[$this->id]['pid']) { //Failed to launch.
@@ -1962,9 +2073,6 @@ class SzMgr
 
         }
 
-        //Set process priority
-        shell_exec('wmic process where ProcessId="'.$this->server[$this->id]['pid'].'" CALL setpriority '.$this->server[$this->id]['priority']);
-
         //Startup time
         $this->server[$this->id]['time']  = time(); //time server was launched
 
@@ -1975,11 +2083,7 @@ class SzMgr
         $this->server[$this->id]['quit'] = 0;
 
         //Log launch start
-        $this->Log(50, str_replace('\"','"', str_replace($this->server[$this->id]['installdir'].'\\','',$srcds)));
-
-        //Update rcon_password
-        $this->server[$this->id]['rcon_password'] = $this->ReadFile($this->server[$this->id]['installdir'].'\\'.$this->server[$this->id]['game'].'\\'.$this->games[$this->server[$this->id]['appid']]['config'],'rcon_password');
-        if (!$this->server[$this->id]['rcon_password']) $this->Log(68);
+        $this->Log(50, str_replace('\"','"', str_replace($this->server[$this->id]['installdir'].'\\','',$srcds.' '.$cmd)));
 
         //Pause
         sleep(1);
@@ -2013,7 +2117,7 @@ class SzMgr
             !file_exists($this->server[$this->id]['installdir'].'\\'.$this->server[$this->id]['game'].'\\'.$this->server[$this->id]['updatefile']) ) {
 
             $file = @fopen($this->server[$this->id]['installdir'].'\\'.$this->server[$this->id]['game'].'\\'.$this->server[$this->id]['updatefile'], "w");
-            @fclose($file);
+            fclose($file);
 
         }
 
@@ -2060,7 +2164,7 @@ class SzMgr
         if ( $this->ProcessId('chk',0) ) return false;
 
         //crashed
-        if ( $this->server[$this->id]['status'] == 'crash'  && $this->server[$this->id]['crash'] == 4 ) $ready = false;
+        if ( $this->server[$this->id]['status'] == 'crash' ) $ready = false;
         if ( $this->server[$this->id]['crash'] >= 5 ) $xcopy = false;
 
         //xcopy ready to copy the files
@@ -2100,11 +2204,12 @@ class SzMgr
             }
 
             //Steamcmd Update folder
-            $steamcmd = $this->server[0]['steamcmddir'].' +force_install_dir \"'.$path.'\"'.' +login '.$this->server[$this->id]['login'].$this->games[$this->server[$this->id]['appid']]['app_set_config'].' +app_update '.$this->games[$this->server[$this->id]['appid']]['server'].' validate +quit';
+            $steamcmd = $this->server[0]['steamcmddir'];
+            $cmd = '+force_install_dir \"'.$path.'\"'.' +login '.$this->server[$this->id]['login'].$this->games[$this->server[$this->id]['appid']]['app_set_config'].' +app_update '.$this->games[$this->server[$this->id]['appid']]['server'].' validate +quit';
 
             //Exec SteamCMD
-            preg_match('/ProcessId=([0-9]+)/' , preg_replace('/\s+/', '', shell_exec('wmic process call create "'.$steamcmd.'"')), $matches);
-            $this->server[$this->id]['update'] = @$matches[1];
+            $command = "powershell -Command \"\$process = Start-Process -FilePath '".$steamcmd."' -ArgumentList '".$cmd."' -PassThru; \$process.Id\"";
+            $this->server[$this->id]['update'] = (int)shell_exec($command);
 
         }
 
@@ -2167,7 +2272,7 @@ class SzMgr
                 $this->Log(39);
 
                 //the cache was repair
-                if ( $this->server[$this->id]['xcopy'] && $this->server[$this->id]['status'] == 'crash'  && $this->server[$this->id]['crash'] == 4 ) {
+                if ( $this->server[$this->id]['xcopy'] && $this->server[$this->id]['status'] == 'crash'  && $this->server[$this->id]['crash'] === 3 ) {
 
                     $this->Status('off','');
                     $this->Update();
@@ -2279,11 +2384,13 @@ class SzMgr
         if ($safe) $this->Log(38);
 
         //Path to xcopy.php
-        $xcopy = $this->__DIR.'\bin\php.exe -f \"'.$this->__DIR.'\bin\xcopy.php\" \"'.$source.'\" \"'.$destination.'\" \"'.$game.'\" \"'.$safe.'\" \"1\"';
+        $xcopy = $this->__DIR.'\bin\php.exe';
+        $cmd   = '-f \"'.$this->__DIR.'\bin\xcopy.php\" \"'.$source.'\" \"'.$destination.'\" \"'.$game.'\" \"'.$safe.'\" \"1\"';
 
         //Run xcopy
-        preg_match('/ProcessId=([0-9]+)/' , preg_replace('/\s+/', '', shell_exec('wmic process call create "'.$xcopy.'","'.$this->__DIR.'"')), $matches);
+        $command = "powershell -Command \"\$process = Start-Process -FilePath '".$xcopy."' -ArgumentList '".$cmd."' -WorkingDirectory '".$this->__DIR."' -PassThru; \$process.Id\"";
+        $output = shell_exec($command);
+        return (int)$output;
 
-        return @$matches[1];
     }
-} new SzMgr();
+} new SzMgr(isset($argv[1]));
