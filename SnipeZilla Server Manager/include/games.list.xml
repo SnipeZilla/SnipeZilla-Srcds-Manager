@@ -118,6 +118,8 @@
         <server>730</server>
         <srcds>game\bin\win64\cs2.exe</srcds>
         <cmd>-dedicated</cmd>
+        <metamod>true</metamod>
+        <rcon_password>true</rcon_password>
     </games>
 	
     <games appid='4000'>

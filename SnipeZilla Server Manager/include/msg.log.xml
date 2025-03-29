@@ -10,6 +10,7 @@
     <message code='8'>No server created. Please check config.xml</message>
     <message code='9'>Server %1 (%2): Install Dir already defined => server %4.</message>
     <message code='10'>Server %1 (%2): Port is used => server %4.</message>
+    <message code='11'>Env Path: %4</message>
 
     <!--[20-39] Update (steamcmd.exe) messages-->
     <message code='20'>%2: Installing new game, [%3][%2].</message>
@@ -18,6 +19,7 @@
     <message code='23'>%3: New version available. %4 -> %5.</message>
     <message code='24'>MasterServerVersion: No response!. Request Queued.</message>
     <message code='25'>%2: New Version is available! Server is shutting down.</message>
+    <message code='26'>%2: Metamod was added to gameinfo.gi.</message>
     <message code='30'>%2: steamCMD.exe is updating [%3].</message>
     <message code='31'>%2: steamCMD.exe is updating cache /apps/%3.</message>
     <message code='32'>%2: Copying new files(xcopy).</message>
